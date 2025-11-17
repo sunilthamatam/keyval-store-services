@@ -1,16 +1,22 @@
 package com.keyvalstore.api.resource;
 
 import com.keyvalstore.api.dto.NodeResponse;
+import com.keyvalstore.cluster.gossip.GossipMessage;
+import com.keyvalstore.cluster.gossip.GossipProtocol;
 import com.keyvalstore.core.cluster.ClusterManager;
 import com.keyvalstore.core.model.Node;
 import com.keyvalstore.core.storage.StorageEngine;
+import com.keyvalstore.storage.snapshot.SnapshotManager;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -19,13 +25,19 @@ import java.util.Map;
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(name = "Admin", description = "Administrative operations")
 public class AdminResource {
+    private static final Logger log = LoggerFactory.getLogger(AdminResource.class);
 
     private final ClusterManager clusterManager;
     private final StorageEngine storageEngine;
+    private final GossipProtocol gossipProtocol;
+    private final SnapshotManager snapshotManager;
 
-    public AdminResource(ClusterManager clusterManager, StorageEngine storageEngine) {
+    public AdminResource(ClusterManager clusterManager, StorageEngine storageEngine,
+                        GossipProtocol gossipProtocol, SnapshotManager snapshotManager) {
         this.clusterManager = clusterManager;
         this.storageEngine = storageEngine;
+        this.gossipProtocol = gossipProtocol;
+        this.snapshotManager = snapshotManager;
     }
 
     @GET
@@ -134,5 +146,90 @@ public class AdminResource {
                 "message", "Left cluster",
                 "nodeId", clusterManager.getCurrentNode().getId()
         )).build();
+    }
+
+    @POST
+    @Path("/gossip")
+    @Operation(summary = "Handle incoming gossip message")
+    @ApiResponse(responseCode = "200", description = "Gossip processed successfully")
+    public Response handleGossip(GossipMessage message) {
+        try {
+            GossipMessage response = gossipProtocol.handleIncomingGossip(message);
+            return Response.ok(response).build();
+        } catch (Exception e) {
+            log.error("Failed to handle gossip: {}", e.getMessage(), e);
+            return Response.serverError().entity(Map.of("error", e.getMessage())).build();
+        }
+    }
+
+    @POST
+    @Path("/snapshot/create")
+    @Operation(summary = "Create a data snapshot")
+    @ApiResponse(responseCode = "200", description = "Snapshot created successfully")
+    public Response createSnapshot(Map<String, List<String>> request) {
+        try {
+            List<String> namespaces = request.getOrDefault("namespaces", List.of());
+            Path snapshotPath = snapshotManager.createSnapshot(storageEngine, namespaces);
+
+            return Response.ok(Map.of(
+                    "message", "Snapshot created",
+                    "path", snapshotPath.toString(),
+                    "filename", snapshotPath.getFileName().toString()
+            )).build();
+        } catch (Exception e) {
+            log.error("Failed to create snapshot: {}", e.getMessage(), e);
+            return Response.serverError().entity(Map.of("error", e.getMessage())).build();
+        }
+    }
+
+    @GET
+    @Path("/snapshot/list")
+    @Operation(summary = "List available snapshots")
+    @ApiResponse(responseCode = "200", description = "Snapshots listed successfully")
+    public Response listSnapshots() {
+        try {
+            List<Path> snapshots = snapshotManager.listSnapshots();
+            List<Map<String, String>> snapshotInfo = snapshots.stream()
+                    .map(path -> Map.of(
+                            "filename", path.getFileName().toString(),
+                            "path", path.toString()
+                    ))
+                    .toList();
+
+            return Response.ok(Map.of("snapshots", snapshotInfo)).build();
+        } catch (Exception e) {
+            log.error("Failed to list snapshots: {}", e.getMessage(), e);
+            return Response.serverError().entity(Map.of("error", e.getMessage())).build();
+        }
+    }
+
+    @POST
+    @Path("/snapshot/load")
+    @Operation(summary = "Load a snapshot")
+    @ApiResponse(responseCode = "200", description = "Snapshot loaded successfully")
+    public Response loadSnapshot(Map<String, String> request) {
+        try {
+            String filename = request.get("filename");
+            if (filename == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "filename is required"))
+                        .build();
+            }
+
+            Path snapshotPath = snapshotManager.listSnapshots().stream()
+                    .filter(path -> path.getFileName().toString().equals(filename))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Snapshot not found: " + filename));
+
+            long keysLoaded = snapshotManager.loadSnapshot(snapshotPath, storageEngine);
+
+            return Response.ok(Map.of(
+                    "message", "Snapshot loaded",
+                    "keysLoaded", keysLoaded
+            )).build();
+        } catch (Exception e) {
+            log.error("Failed to load snapshot: {}", e.getMessage(), e);
+            return Response.serverError().entity(Map.of("error", e.getMessage())).build();
+        }
     }
 }
