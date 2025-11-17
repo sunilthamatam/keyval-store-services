@@ -164,6 +164,54 @@ database:
   url: jdbc:sqlite:keyvalstore.db
 ```
 
+## Quick Start
+
+### 1. Build the Project
+
+```bash
+mvn clean package -DskipTests
+```
+
+### 2. Run Single Node
+
+```bash
+# Using the script
+./run-single.sh
+
+# Or manually
+java -XX:MaxDirectMemorySize=4g \
+     -Xmx2g \
+     -jar keyval-application/target/keyval-application-1.0.0-SNAPSHOT.jar \
+     server keyval-application/src/main/resources/config.yml
+```
+
+The server will start on:
+- **Application Port**: http://localhost:8080
+- **Admin Port**: http://localhost:9090
+- **OpenAPI Spec**: http://localhost:8080/openapi.json
+
+### 3. Run Demo
+
+```bash
+# In a new terminal (while server is running)
+./examples/demo.sh
+```
+
+This will demonstrate:
+- Creating namespaces with different strategies
+- Storing and retrieving JSON data
+- Atomic increment operations
+- Cache operations
+- Health checks and metrics
+
+### 4. Run Tests
+
+```bash
+./test.sh
+# Or manually:
+mvn test
+```
+
 ## Building
 
 ```bash
@@ -178,25 +226,34 @@ cd keyval-application
 mvn package
 ```
 
-## Running
+## Running in Cluster Mode
+
+### Start 3-Node Cluster
 
 ```bash
-# Single node
-java -jar keyval-application/target/keyval-application-1.0.0-SNAPSHOT.jar server config.yml
+# Using the script
+./run-cluster.sh
+```
 
-# With custom JVM args for off-heap memory
-java -XX:MaxDirectMemorySize=4g \
-     -Xmx2g \
-     -jar keyval-application/target/keyval-application-1.0.0-SNAPSHOT.jar \
-     server config.yml
+This will start 3 nodes:
+- **Node 1**: http://localhost:8081 (Admin: http://localhost:9091)
+- **Node 2**: http://localhost:8082 (Admin: http://localhost:9092)
+- **Node 3**: http://localhost:8083 (Admin: http://localhost:9093)
 
-# Cluster node 1
+### Manual Cluster Setup
+
+```bash
+# Terminal 1 - Start Node 1
 java -jar keyval-application/target/keyval-application-1.0.0-SNAPSHOT.jar \
-     server config-node1.yml
+     server keyval-application/config-node1.yml
 
-# Cluster node 2
+# Terminal 2 - Start Node 2 (joins node 1)
 java -jar keyval-application/target/keyval-application-1.0.0-SNAPSHOT.jar \
-     server config-node2.yml
+     server keyval-application/config-node2.yml
+
+# Terminal 3 - Start Node 3 (joins node 1 and 2)
+java -jar keyval-application/target/keyval-application-1.0.0-SNAPSHOT.jar \
+     server keyval-application/config-node3.yml
 ```
 
 ## Usage Examples
@@ -265,32 +322,39 @@ curl -X PUT http://localhost:8080/api/v1/namespaces/counters/kv/page_views
 - [x] Replication manager
 - [x] Cluster manager
 
-### Phase 3: API (TODO)
-- [ ] DropWizard REST API
-- [ ] Namespace management endpoints
-- [ ] Key-value operation endpoints
-- [ ] OpenAPI specification
-- [ ] Swagger UI integration
+### Phase 3: API ✅
+- [x] DropWizard REST API
+- [x] Namespace management endpoints
+- [x] Key-value operation endpoints
+- [x] OpenAPI specification
+- [x] DTOs and service layer
 
-### Phase 4: Persistence (TODO)
-- [ ] SQLite database setup
-- [ ] Namespace repository
-- [ ] Node repository
-- [ ] Schema migrations
+### Phase 4: Persistence ✅
+- [x] SQLite database setup
+- [x] Namespace repository
+- [x] Node repository
+- [x] Schema migrations
 
-### Phase 5: Application (TODO)
-- [ ] Main application class
-- [ ] Configuration handling
-- [ ] Module integration
-- [ ] Startup/shutdown hooks
+### Phase 5: Application ✅
+- [x] Main application class
+- [x] Configuration handling
+- [x] Module integration
+- [x] Startup/shutdown hooks
+- [x] Health checks
 
-### Phase 6: Advanced Features (TODO)
+### Phase 6: Testing ✅
+- [x] Unit tests for core strategies
+- [x] Storage engine tests
+- [x] Consistent hashing tests
+
+### Phase 7: Advanced Features (Future Enhancements)
 - [ ] HTTP client for remote replication
-- [ ] Admin port listener
-- [ ] Health checks
-- [ ] Metrics collection
+- [ ] Actual admin port listener implementation
+- [ ] Advanced metrics collection (Prometheus)
 - [ ] Read repair mechanism
 - [ ] Anti-entropy (gossip protocol)
+- [ ] Data persistence snapshots
+- [ ] Cluster rebalancing
 
 ## Technology Stack
 

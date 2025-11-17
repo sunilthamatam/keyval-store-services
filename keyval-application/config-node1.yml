@@ -1,0 +1,37 @@
+# KeyVal Store Configuration - Node 1 (Cluster Mode)
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8081
+  adminConnectors:
+    - type: http
+      port: 9091
+
+logging:
+  level: INFO
+  loggers:
+    com.keyvalstore: DEBUG
+  appenders:
+    - type: console
+
+cluster:
+  nodeName: node1
+  nodeId: node1
+  host: localhost
+  port: 8081
+  adminPort: 9091
+  seedNodes: []  # First node has no seed nodes
+  replicationFactor: 3
+  virtualNodesPerNode: 150
+
+storage:
+  maxOffHeapMemory: 2GB
+
+consistency:
+  defaultReadLevel: QUORUM
+  defaultWriteLevel: QUORUM
+
+database:
+  driverClass: org.sqlite.JDBC
+  url: jdbc:sqlite:node1.db

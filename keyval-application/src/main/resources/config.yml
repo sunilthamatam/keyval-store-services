@@ -1,0 +1,48 @@
+# KeyVal Store Configuration - Single Node
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 9090
+
+logging:
+  level: INFO
+  loggers:
+    com.keyvalstore: DEBUG
+  appenders:
+    - type: console
+      threshold: ALL
+      timeZone: UTC
+      target: stdout
+      logFormat: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    - type: file
+      threshold: ALL
+      currentLogFilename: ./logs/keyvalstore.log
+      archivedLogFilenamePattern: ./logs/keyvalstore-%d.log.gz
+      archivedFileCount: 7
+      timeZone: UTC
+      logFormat: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+cluster:
+  nodeName: node1
+  nodeId: node1
+  host: localhost
+  port: 8080
+  adminPort: 9090
+  seedNodes: []  # Empty for single node
+  replicationFactor: 1
+  virtualNodesPerNode: 150
+
+storage:
+  maxOffHeapMemory: 2GB
+
+consistency:
+  defaultReadLevel: QUORUM
+  defaultWriteLevel: QUORUM
+
+database:
+  driverClass: org.sqlite.JDBC
+  url: jdbc:sqlite:keyvalstore.db
