@@ -46,6 +46,12 @@
             <artifactId>dropwizard-core</artifactId>
         </dependency>
 
+        <!-- Swagger/OpenAPI -->
+        <dependency>
+            <groupId>com.smoketurner</groupId>
+            <artifactId>dropwizard-swagger</artifactId>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>ch.qos.logback</groupId>

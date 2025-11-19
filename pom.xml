@@ -126,6 +126,11 @@
                 <artifactId>swagger-jaxrs2</artifactId>
                 <version>${swagger.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.smoketurner</groupId>
+                <artifactId>dropwizard-swagger</artifactId>
+                <version>4.0.5-1</version>
+            </dependency>
 
             <!-- Jackson for JSON -->
             <dependency>
