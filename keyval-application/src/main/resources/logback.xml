@@ -6,7 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.keyvalstore" level="DEBUG"/>
+    <logger name="com.constelld.keyvalstore" level="DEBUG"/>
     <logger name="io.dropwizard" level="INFO"/>
     <logger name="org.eclipse.jetty" level="INFO"/>
 

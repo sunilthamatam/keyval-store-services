@@ -11,7 +11,7 @@ server:
 logging:
   level: INFO
   loggers:
-    com.keyvalstore: DEBUG
+    com.constelld.keyvalstore: DEBUG
   appenders:
     - type: console
       threshold: ALL

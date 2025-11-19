@@ -5,7 +5,7 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.keyvalstore</groupId>
+    <groupId>com.constelld.keyvalstore</groupId>
     <artifactId>keyval-store-services</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -55,27 +55,27 @@
         <dependencies>
             <!-- Internal Modules -->
             <dependency>
-                <groupId>com.keyvalstore</groupId>
+                <groupId>com.constelld.keyvalstore</groupId>
                 <artifactId>keyval-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.keyvalstore</groupId>
+                <groupId>com.constelld.keyvalstore</groupId>
                 <artifactId>keyval-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.keyvalstore</groupId>
+                <groupId>com.constelld.keyvalstore</groupId>
                 <artifactId>keyval-cluster</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.keyvalstore</groupId>
+                <groupId>com.constelld.keyvalstore</groupId>
                 <artifactId>keyval-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.keyvalstore</groupId>
+                <groupId>com.constelld.keyvalstore</groupId>
                 <artifactId>keyval-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
