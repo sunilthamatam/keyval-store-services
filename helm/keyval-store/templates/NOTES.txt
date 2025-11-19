@@ -1,0 +1,130 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+==============================================================================
+KEYVAL STORE - Distributed Key-Value Store
+==============================================================================
+
+Your KeyVal Store cluster has been deployed with {{ .Values.replicaCount }} replicas.
+
+1. Get the application URL:
+
+{{- if .Values.ingress.enabled }}
+  Your application is available at:
+{{- range $host := .Values.ingress.hosts }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ (index $host.paths 0).path }}
+{{- end }}
+
+{{- else if contains "NodePort" .Values.service.type }}
+
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "keyval-store.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Application URL: http://$NODE_IP:$NODE_PORT"
+  echo "Admin URL: http://$NODE_IP:$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[1].nodePort}" services {{ include "keyval-store.fullname" . }})"
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+
+  You can watch the status by running:
+    kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "keyval-store.fullname" . }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "keyval-store.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "Application URL: http://$SERVICE_IP:{{ .Values.service.port }}"
+  echo "Admin URL: http://$SERVICE_IP:{{ .Values.service.adminPort }}"
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+
+  To access the application from outside the cluster:
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "keyval-store.fullname" . }} 8080:{{ .Values.service.port }} 9090:{{ .Values.service.adminPort }}
+
+  Then access:
+    - Application: http://localhost:8080
+    - Admin API: http://localhost:9090
+    - Health Check: http://localhost:9090/healthcheck
+    - Metrics: http://localhost:8080/api/v1/admin/metrics
+
+{{- end }}
+
+2. Check the status of the pods:
+
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "keyval-store.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+3. View the logs:
+
+  kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "keyval-store.name" . }}" -f
+
+4. Example API calls:
+
+  # Create a namespace
+  curl -X POST http://localhost:8080/api/v1/namespaces \
+    -H "Content-Type: application/json" \
+    -d '{"namespace":"users","keyStrategy":"HASH","valueStrategy":"STRING"}'
+
+  # Store a value
+  curl -X PUT http://localhost:8080/api/v1/namespaces/users/kv/user123 \
+    -H "Content-Type: text/plain" \
+    -d 'John Doe'
+
+  # Retrieve a value
+  curl http://localhost:8080/api/v1/namespaces/users/kv/user123
+
+  # Get cluster status
+  curl http://localhost:8080/api/v1/admin/cluster/status
+
+5. Cluster Configuration:
+
+  - Replicas: {{ .Values.replicaCount }}
+  - Replication Factor: {{ .Values.config.cluster.replicationFactor }}
+  - Virtual Nodes per Node: {{ .Values.config.cluster.virtualNodesPerNode }}
+  - Consistency Level (Read): {{ .Values.config.consistency.defaultReadLevel }}
+  - Consistency Level (Write): {{ .Values.config.consistency.defaultWriteLevel }}
+  - Max Off-Heap Memory: {{ .Values.config.storage.maxOffHeapMemory }}
+
+6. Monitoring:
+
+{{- if .Values.serviceMonitor.enabled }}
+  - ServiceMonitor is enabled for Prometheus Operator
+  - Metrics endpoint: /api/v1/admin/metrics
+{{- else }}
+  - To enable Prometheus monitoring, set serviceMonitor.enabled=true
+{{- end }}
+
+  - Pod annotations for Prometheus scraping are configured
+  - Health checks are available at /healthcheck
+
+7. Persistence:
+
+{{- if .Values.persistence.enabled }}
+  - Database persistence is enabled ({{ .Values.persistence.size }})
+{{- else }}
+  - Database persistence is disabled (using emptyDir)
+  - WARNING: Data will be lost when pods are deleted
+{{- end }}
+
+{{- if .Values.snapshotPersistence.enabled }}
+  - Snapshot persistence is enabled ({{ .Values.snapshotPersistence.size }})
+{{- else }}
+  - Snapshot persistence is disabled
+{{- end }}
+
+8. Next Steps:
+
+  - Review the values.yaml file for configuration options
+  - Set up Ingress for external access
+  - Configure monitoring with Prometheus
+  - Set up backup/restore procedures using snapshots
+  - Review security settings (NetworkPolicy, PodSecurityPolicy)
+
+For more information, visit:
+  - Documentation: https://github.com/sunilthamatam/keyval-store-services/blob/main/README.md
+  - Architecture: https://github.com/sunilthamatam/keyval-store-services/blob/main/docs/architecture/
+
+==============================================================================

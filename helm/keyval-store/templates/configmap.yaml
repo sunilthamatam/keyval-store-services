@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "keyval-store.fullname" . }}
+  labels:
+    {{- include "keyval-store.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    # KeyVal Store Configuration - Kubernetes Cluster
+
+    server:
+      applicationConnectors:
+        - type: http
+          port: 8080
+          bindHost: 0.0.0.0
+      adminConnectors:
+        - type: http
+          port: 9090
+          bindHost: 0.0.0.0
+
+    logging:
+      level: {{ .Values.config.logging.level }}
+      loggers:
+        com.constelld.keyvalstore: {{ .Values.config.logging.appLevel }}
+      appenders:
+        - type: console
+          threshold: ALL
+          timeZone: UTC
+          target: stdout
+          logFormat: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+        - type: file
+          threshold: ALL
+          currentLogFilename: /data/logs/keyvalstore.log
+          archivedLogFilenamePattern: /data/logs/keyvalstore-%d.log.gz
+          archivedFileCount: 7
+          timeZone: UTC
+          logFormat: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+    cluster:
+      nodeName: ${NODE_NAME}
+      nodeId: ${NODE_ID}
+      host: ${POD_IP}
+      port: 8080
+      adminPort: 9090
+      seedNodes:
+        {{- $seedNodes := include "keyval-store.seedNodes" . | splitList "," }}
+        {{- range $seedNodes }}
+        - {{ . }}
+        {{- end }}
+      replicationFactor: {{ .Values.config.cluster.replicationFactor }}
+      virtualNodesPerNode: {{ .Values.config.cluster.virtualNodesPerNode }}
+      gossipInterval: {{ .Values.config.cluster.gossipInterval }}
+      gossipFanout: {{ .Values.config.cluster.gossipFanout }}
+
+    storage:
+      maxOffHeapMemory: {{ .Values.config.storage.maxOffHeapMemory }}
+      enableSnapshots: {{ .Values.config.storage.enableSnapshots }}
+      snapshotDirectory: {{ .Values.config.storage.snapshotDirectory }}
+
+    consistency:
+      defaultReadLevel: {{ .Values.config.consistency.defaultReadLevel }}
+      defaultWriteLevel: {{ .Values.config.consistency.defaultWriteLevel }}
+
+    database:
+      driverClass: org.sqlite.JDBC
+      url: {{ .Values.config.database.url }}

@@ -1,0 +1,951 @@
+openapi: 3.0.3
+info:
+  title: KeyVal Store API
+  description: |
+    A distributed key-value store with off-heap storage and clustering support.
+
+    ## Features
+    - **Namespaces**: Organize data with configurable key/value strategies
+    - **Off-Heap Storage**: Native memory storage to avoid GC overhead
+    - **Distributed Clustering**: Consistent hashing with configurable replication
+    - **Consistency Levels**: ONE, QUORUM, or ALL for reads and writes
+    - **Snapshots**: Create and restore data snapshots
+    - **Metrics**: Prometheus-compatible metrics endpoint
+
+    ## Key Concepts
+
+    ### Namespaces
+    Namespaces provide logical separation of data with different strategies:
+    - **Key Strategy**: HASH (distributed key hashing)
+    - **Value Strategy**: STRING, ATOMIC_INCREMENT, JSON_BLOB
+
+    ### Consistency Levels
+    - **ONE**: Fastest, returns after 1 node responds
+    - **QUORUM**: Balanced, returns after majority (N/2+1) responds
+    - **ALL**: Strongest, returns after all replicas respond
+
+    ### Replication
+    Data is automatically replicated across nodes based on the replication factor (default: 3).
+
+  version: 1.0.0
+  contact:
+    name: Constelld Team
+    email: support@constelld.com
+    url: https://github.com/sunilthamatam/keyval-store-services
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: http://localhost:8081
+    description: Local development server (Node 2)
+  - url: http://localhost:8082
+    description: Local development server (Node 3)
+  - url: https://keyval-store.example.com
+    description: Production server
+
+tags:
+  - name: Namespaces
+    description: Namespace management operations
+  - name: Key-Value
+    description: Key-value storage operations
+  - name: Admin
+    description: Cluster administration and management
+  - name: Monitoring
+    description: Health checks and metrics
+
+paths:
+  /api/v1/namespaces:
+    get:
+      tags:
+        - Namespaces
+      summary: List all namespaces
+      description: Retrieve a list of all namespaces in the system
+      operationId: listNamespaces
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NamespaceResponse'
+              example:
+                - name: users
+                  keyStrategy: HASH
+                  valueStrategy: JSON_BLOB
+                  createdAt: "2025-01-19T10:30:00.000Z"
+                - name: sessions
+                  keyStrategy: HASH
+                  valueStrategy: STRING
+                  createdAt: "2025-01-19T10:35:00.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Namespaces
+      summary: Create a new namespace
+      description: Create a new namespace with specified key and value strategies
+      operationId: createNamespace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNamespaceRequest'
+            examples:
+              stringNamespace:
+                summary: Simple string namespace
+                value:
+                  namespace: users
+                  keyStrategy: HASH
+                  valueStrategy: STRING
+              jsonNamespace:
+                summary: JSON blob namespace
+                value:
+                  namespace: products
+                  keyStrategy: HASH
+                  valueStrategy: JSON_BLOB
+              counterNamespace:
+                summary: Atomic counter namespace
+                value:
+                  namespace: counters
+                  keyStrategy: HASH
+                  valueStrategy: ATOMIC_INCREMENT
+      responses:
+        '200':
+          description: Namespace created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceResponse'
+              example:
+                name: users
+                keyStrategy: HASH
+                valueStrategy: STRING
+                createdAt: "2025-01-19T10:30:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Namespace already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 409
+                message: "Namespace already exists: users"
+                details: "A namespace with the name 'users' already exists"
+                timestamp: "2025-01-19T10:30:00.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/namespaces/{namespace}:
+    get:
+      tags:
+        - Namespaces
+      summary: Get namespace details
+      description: Retrieve details of a specific namespace
+      operationId: getNamespace
+      parameters:
+        - $ref: '#/components/parameters/NamespacePath'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceResponse'
+              example:
+                name: users
+                keyStrategy: HASH
+                valueStrategy: JSON_BLOB
+                createdAt: "2025-01-19T10:30:00.000Z"
+        '404':
+          $ref: '#/components/responses/NamespaceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Namespaces
+      summary: Delete a namespace
+      description: Delete a namespace and all its data
+      operationId: deleteNamespace
+      parameters:
+        - $ref: '#/components/parameters/NamespacePath'
+      responses:
+        '204':
+          description: Namespace deleted successfully
+        '404':
+          $ref: '#/components/responses/NamespaceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/namespaces/{namespace}/kv:
+    get:
+      tags:
+        - Key-Value
+      summary: List all keys in namespace
+      description: Retrieve a list of all keys stored in the specified namespace
+      operationId: listKeys
+      parameters:
+        - $ref: '#/components/parameters/NamespacePath'
+        - name: limit
+          in: query
+          description: Maximum number of keys to return
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 10000
+        - name: offset
+          in: query
+          description: Number of keys to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - user:123
+                - user:456
+                - user:789
+        '404':
+          $ref: '#/components/responses/NamespaceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/namespaces/{namespace}/kv/{key}:
+    get:
+      tags:
+        - Key-Value
+      summary: Get value by key
+      description: Retrieve the value associated with a specific key
+      operationId: getValue
+      parameters:
+        - $ref: '#/components/parameters/NamespacePath'
+        - $ref: '#/components/parameters/KeyPath'
+        - name: consistency
+          in: query
+          description: Read consistency level
+          schema:
+            $ref: '#/components/schemas/ConsistencyLevel'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueResponse'
+              example:
+                namespace: users
+                key: user:123
+                value: '{"name": "John Doe", "email": "john@example.com"}'
+                version: 5
+                timestamp: "2025-01-19T10:30:00.000Z"
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Key not found: user:123"
+                details: "The key 'user:123' does not exist in namespace 'users'"
+                timestamp: "2025-01-19T10:30:00.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Key-Value
+      summary: Store or update a value
+      description: Store a new value or update an existing value for the specified key
+      operationId: putValue
+      parameters:
+        - $ref: '#/components/parameters/NamespacePath'
+        - $ref: '#/components/parameters/KeyPath'
+        - name: consistency
+          in: query
+          description: Write consistency level
+          schema:
+            $ref: '#/components/schemas/ConsistencyLevel'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+            examples:
+              simpleString:
+                summary: Simple string value
+                value: "John Doe"
+              jsonString:
+                summary: JSON value
+                value: '{"name": "John Doe", "email": "john@example.com", "age": 30}'
+      responses:
+        '200':
+          description: Value stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyValueResponse'
+              example:
+                namespace: users
+                key: user:123
+                value: '{"name": "John Doe", "email": "john@example.com"}'
+                version: 6
+                timestamp: "2025-01-19T10:30:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NamespaceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    delete:
+      tags:
+        - Key-Value
+      summary: Delete a key-value pair
+      description: Remove a key and its associated value from the namespace
+      operationId: deleteValue
+      parameters:
+        - $ref: '#/components/parameters/NamespacePath'
+        - $ref: '#/components/parameters/KeyPath'
+        - name: consistency
+          in: query
+          description: Write consistency level
+          schema:
+            $ref: '#/components/schemas/ConsistencyLevel'
+      responses:
+        '204':
+          description: Value deleted successfully
+        '404':
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/cluster/nodes:
+    get:
+      tags:
+        - Admin
+      summary: List cluster nodes
+      description: Retrieve a list of all nodes in the cluster
+      operationId: listNodes
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NodeResponse'
+              example:
+                - nodeId: node1
+                  host: localhost
+                  port: 8080
+                  adminPort: 9090
+                  status: ALIVE
+                  lastHeartbeat: "2025-01-19T10:30:00.000Z"
+                - nodeId: node2
+                  host: localhost
+                  port: 8081
+                  adminPort: 9091
+                  status: ALIVE
+                  lastHeartbeat: "2025-01-19T10:30:05.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Admin
+      summary: Add a node to the cluster
+      description: Register a new node in the cluster
+      operationId: addNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NodeRequest'
+            example:
+              nodeId: node4
+              host: 10.0.0.4
+              port: 8080
+              adminPort: 9090
+      responses:
+        '200':
+          description: Node added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '201':
+          description: Node created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/cluster/nodes/{nodeId}:
+    delete:
+      tags:
+        - Admin
+      summary: Remove a node from the cluster
+      description: Deregister a node from the cluster
+      operationId: removeNode
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          description: ID of the node to remove
+          schema:
+            type: string
+          example: node4
+      responses:
+        '200':
+          description: Node removed successfully
+        '204':
+          description: Node removed successfully
+        '404':
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "Node not found: node4"
+                details: "The node with ID 'node4' does not exist in the cluster"
+                timestamp: "2025-01-19T10:30:00.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/cluster/status:
+    get:
+      tags:
+        - Admin
+      summary: Get cluster status
+      description: Retrieve the current status and health of the cluster
+      operationId: getClusterStatus
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterStatus'
+              example:
+                totalNodes: 3
+                aliveNodes: 3
+                suspectedNodes: 0
+                deadNodes: 0
+                replicationFactor: 3
+                virtualNodesPerNode: 150
+                dataDistribution:
+                  node1: 33.2
+                  node2: 33.5
+                  node3: 33.3
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/cluster/gossip:
+    post:
+      tags:
+        - Admin
+      summary: Trigger gossip protocol
+      description: Manually trigger the gossip protocol for cluster state synchronization
+      operationId: triggerGossip
+      responses:
+        '200':
+          description: Gossip triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Gossip protocol triggered successfully"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/snapshot/create:
+    post:
+      tags:
+        - Admin
+      summary: Create a snapshot
+      description: Create a snapshot of the current data for backup
+      operationId: createSnapshot
+      responses:
+        '200':
+          description: Snapshot created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  snapshotName:
+                    type: string
+                    example: "snapshot-2025-01-19T10-30-00.gz"
+                  size:
+                    type: integer
+                    format: int64
+                    description: Size in bytes
+                    example: 1048576
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-01-19T10:30:00.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/snapshot/list:
+    get:
+      tags:
+        - Admin
+      summary: List available snapshots
+      description: Retrieve a list of all available snapshots
+      operationId: listSnapshots
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    size:
+                      type: integer
+                      format: int64
+                    created:
+                      type: string
+                      format: date-time
+              example:
+                - name: snapshot-2025-01-19T10-30-00.gz
+                  size: 1048576
+                  created: "2025-01-19T10:30:00.000Z"
+                - name: snapshot-2025-01-19T11-00-00.gz
+                  size: 1124864
+                  created: "2025-01-19T11:00:00.000Z"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/snapshot/load:
+    post:
+      tags:
+        - Admin
+      summary: Load a snapshot
+      description: Restore data from a snapshot
+      operationId: loadSnapshot
+      parameters:
+        - name: snapshotName
+          in: query
+          required: true
+          description: Name of the snapshot to load
+          schema:
+            type: string
+          example: snapshot-2025-01-19T10-30-00.gz
+      responses:
+        '200':
+          description: Snapshot loaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Snapshot loaded successfully"
+                  entriesLoaded:
+                    type: integer
+                    example: 10000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Snapshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/metrics:
+    get:
+      tags:
+        - Monitoring
+      summary: Get Prometheus metrics
+      description: Retrieve metrics in Prometheus text format
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP keyval_requests_total Total number of requests
+                # TYPE keyval_requests_total counter
+                keyval_requests_total{endpoint="put",namespace="users"} 12345
+
+                # HELP keyval_request_duration_seconds Request duration in seconds
+                # TYPE keyval_request_duration_seconds histogram
+                keyval_request_duration_seconds_bucket{endpoint="get",le="0.01"} 1000
+
+                # HELP keyval_storage_used_bytes Storage used in bytes
+                # TYPE keyval_storage_used_bytes gauge
+                keyval_storage_used_bytes{namespace="users"} 1048576
+
+  /healthcheck:
+    get:
+      tags:
+        - Monitoring
+      summary: Health check
+      description: Check the health status of the application
+      operationId: healthCheck
+      servers:
+        - url: http://localhost:9090
+          description: Admin port
+      responses:
+        '200':
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  storage:
+                    $ref: '#/components/schemas/HealthCheckResult'
+                  cluster:
+                    $ref: '#/components/schemas/HealthCheckResult'
+                  database:
+                    $ref: '#/components/schemas/HealthCheckResult'
+                  deadlocks:
+                    $ref: '#/components/schemas/HealthCheckResult'
+              example:
+                storage:
+                  healthy: true
+                  message: "Off-heap storage operational"
+                  usedMemory: "512MB"
+                  maxMemory: "2GB"
+                cluster:
+                  healthy: true
+                  message: "Cluster operational"
+                  activeNodes: 3
+                  totalNodes: 3
+                database:
+                  healthy: true
+                  message: "Database connected"
+                deadlocks:
+                  healthy: true
+        '503':
+          description: Application is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    CreateNamespaceRequest:
+      type: object
+      required:
+        - namespace
+        - keyStrategy
+        - valueStrategy
+      properties:
+        namespace:
+          type: string
+          description: Name of the namespace
+          pattern: '^[a-zA-Z0-9_-]+$'
+          minLength: 1
+          maxLength: 255
+          example: users
+        keyStrategy:
+          type: string
+          enum:
+            - HASH
+          description: Strategy for key distribution
+          example: HASH
+        valueStrategy:
+          type: string
+          enum:
+            - STRING
+            - ATOMIC_INCREMENT
+            - JSON_BLOB
+          description: Strategy for value handling
+          example: STRING
+
+    NamespaceResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: users
+        keyStrategy:
+          type: string
+          example: HASH
+        valueStrategy:
+          type: string
+          example: STRING
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-01-19T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-01-19T10:30:00.000Z"
+
+    KeyValueResponse:
+      type: object
+      properties:
+        namespace:
+          type: string
+          example: users
+        key:
+          type: string
+          example: user:123
+        value:
+          type: string
+          example: '{"name": "John Doe", "email": "john@example.com"}'
+        version:
+          type: integer
+          format: int64
+          description: Version number for conflict resolution
+          example: 5
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-19T10:30:00.000Z"
+
+    NodeRequest:
+      type: object
+      required:
+        - nodeId
+        - host
+        - port
+        - adminPort
+      properties:
+        nodeId:
+          type: string
+          example: node4
+        host:
+          type: string
+          example: 10.0.0.4
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 8080
+        adminPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          example: 9090
+
+    NodeResponse:
+      type: object
+      properties:
+        nodeId:
+          type: string
+          example: node1
+        host:
+          type: string
+          example: localhost
+        port:
+          type: integer
+          example: 8080
+        adminPort:
+          type: integer
+          example: 9090
+        status:
+          type: string
+          enum:
+            - ALIVE
+            - SUSPECTED
+            - DEAD
+          example: ALIVE
+        lastHeartbeat:
+          type: string
+          format: date-time
+          example: "2025-01-19T10:30:00.000Z"
+
+    ClusterStatus:
+      type: object
+      properties:
+        totalNodes:
+          type: integer
+          example: 3
+        aliveNodes:
+          type: integer
+          example: 3
+        suspectedNodes:
+          type: integer
+          example: 0
+        deadNodes:
+          type: integer
+          example: 0
+        replicationFactor:
+          type: integer
+          example: 3
+        virtualNodesPerNode:
+          type: integer
+          example: 150
+        dataDistribution:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+          example:
+            node1: 33.2
+            node2: 33.5
+            node3: 33.3
+
+    ConsistencyLevel:
+      type: string
+      enum:
+        - ONE
+        - QUORUM
+        - ALL
+      default: QUORUM
+      description: |
+        Consistency level for read/write operations:
+        - ONE: Fastest, returns after 1 node responds
+        - QUORUM: Balanced, returns after majority (N/2+1) responds
+        - ALL: Strongest, returns after all replicas respond
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "Namespace not found: users"
+        details:
+          type: string
+          example: "The requested namespace 'users' does not exist"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-19T10:30:00.000Z"
+
+    HealthCheckResult:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Service operational"
+
+  parameters:
+    NamespacePath:
+      name: namespace
+      in: path
+      required: true
+      description: Name of the namespace
+      schema:
+        type: string
+      example: users
+
+    KeyPath:
+      name: key
+      in: path
+      required: true
+      description: Key to operate on
+      schema:
+        type: string
+      example: user:123
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 400
+            message: "Invalid request"
+            details: "The request body is malformed or contains invalid data"
+            timestamp: "2025-01-19T10:30:00.000Z"
+
+    NamespaceNotFound:
+      description: Namespace not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 404
+            message: "Namespace not found: users"
+            details: "The requested namespace 'users' does not exist. Create it first using POST /api/v1/namespaces"
+            timestamp: "2025-01-19T10:30:00.000Z"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 500
+            message: "Internal server error"
+            details: "An unexpected error occurred while processing the request"
+            timestamp: "2025-01-19T10:30:00.000Z"
+
+    ServiceUnavailable:
+      description: Service unavailable - cluster issue
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 503
+            message: "Service unavailable"
+            details: "Cannot achieve required consistency level - insufficient replicas available"
+            timestamp: "2025-01-19T10:30:00.000Z"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication (if enabled)
+
+security: []

@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+.metadata/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Helm
+helm/
+
+# Documentation
+docs/
+README.md
+*.md
+
+# Examples
+examples/
+
+# Test files
+**/src/test/
+
+# Database files
+*.db
+*.db-journal
+
+# Snapshots
+snapshots/

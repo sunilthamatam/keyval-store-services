@@ -1,6 +1,7 @@
 package com.constelld.keyvalstore.application;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.smoketurner.dropwizard.swagger.SwaggerBundleConfiguration;
 import io.dropwizard.core.Configuration;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -33,6 +34,10 @@ public class KeyValStoreConfiguration extends Configuration {
     @JsonProperty("database")
     private DatabaseConfiguration database = new DatabaseConfiguration();
 
+    @Valid
+    @JsonProperty("swagger")
+    private SwaggerBundleConfiguration swagger;
+
     public ClusterConfiguration getCluster() {
         return cluster;
     }
@@ -63,6 +68,14 @@ public class KeyValStoreConfiguration extends Configuration {
 
     public void setDatabase(DatabaseConfiguration database) {
         this.database = database;
+    }
+
+    public SwaggerBundleConfiguration getSwagger() {
+        return swagger;
+    }
+
+    public void setSwagger(SwaggerBundleConfiguration swagger) {
+        this.swagger = swagger;
     }
 
     /**

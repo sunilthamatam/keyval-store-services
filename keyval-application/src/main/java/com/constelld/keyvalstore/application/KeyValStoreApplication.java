@@ -20,13 +20,11 @@ import com.constelld.keyvalstore.persistence.db.DatabaseManager;
 import com.constelld.keyvalstore.persistence.repository.NamespaceRepository;
 import com.constelld.keyvalstore.persistence.repository.NodeRepository;
 import com.constelld.keyvalstore.storage.engine.OffHeapStorageEngine;
+import com.smoketurner.dropwizard.swagger.SwaggerBundle;
+import com.smoketurner.dropwizard.swagger.SwaggerBundleConfiguration;
 import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
-import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
-import io.swagger.v3.oas.integration.SwaggerConfiguration;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +52,13 @@ public class KeyValStoreApplication extends Application<KeyValStoreConfiguration
 
     @Override
     public void initialize(Bootstrap<KeyValStoreConfiguration> bootstrap) {
-        // Any initialization before configuration is loaded
+        // Configure Swagger/OpenAPI
+        bootstrap.addBundle(new SwaggerBundle<KeyValStoreConfiguration>() {
+            @Override
+            protected SwaggerBundleConfiguration getSwaggerBundleConfiguration(KeyValStoreConfiguration configuration) {
+                return configuration.getSwagger();
+            }
+        });
     }
 
     @Override
@@ -115,9 +119,6 @@ public class KeyValStoreApplication extends Application<KeyValStoreConfiguration
         // Register health checks
         environment.healthChecks().register("storage", new StorageHealthCheck(storageEngine));
 
-        // Setup OpenAPI/Swagger
-        setupOpenAPI(environment, configuration);
-
         // Register shutdown hook
         environment.lifecycle().manage(new io.dropwizard.lifecycle.Managed() {
             @Override
@@ -149,22 +150,6 @@ public class KeyValStoreApplication extends Application<KeyValStoreConfiguration
         });
 
         log.info("KeyVal Store Application configuration completed");
-    }
-
-    private void setupOpenAPI(Environment environment, KeyValStoreConfiguration configuration) {
-        OpenAPI openAPI = new OpenAPI()
-                .info(new Info()
-                        .title("KeyVal Store API")
-                        .description("Distributed Key-Value Store with Off-Heap Storage")
-                        .version("1.0.0"));
-
-        SwaggerConfiguration swaggerConfig = new SwaggerConfiguration()
-                .openAPI(openAPI)
-                .prettyPrint(true);
-
-        OpenApiResource openApiResource = new OpenApiResource();
-        environment.jersey().register(openApiResource);
-
-        log.info("OpenAPI/Swagger configured at /openapi.json");
+        log.info("OpenAPI/Swagger UI available at /swagger");
     }
 }

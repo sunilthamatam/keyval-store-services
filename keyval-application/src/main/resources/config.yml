@@ -46,3 +46,15 @@ consistency:
 database:
   driverClass: org.sqlite.JDBC
   url: jdbc:sqlite:keyvalstore.db
+
+swagger:
+  resourcePackage: com.constelld.keyvalstore.api.resource
+  title: KeyVal Store API
+  description: Distributed Key-Value Store with Off-Heap Storage and Clustering Support
+  version: 1.0.0
+  contact: support@constelld.com
+  license: Apache 2.0
+  licenseUrl: https://www.apache.org/licenses/LICENSE-2.0.html
+  schemes:
+    - http
+  uriPrefix: /api

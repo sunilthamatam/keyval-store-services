@@ -1,0 +1,528 @@
+{
+  "info": {
+    "name": "KeyVal Store API",
+    "description": "A distributed key-value store with off-heap storage and clustering support",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "1"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminUrl",
+      "value": "http://localhost:9090",
+      "type": "string"
+    },
+    {
+      "key": "namespace",
+      "value": "users",
+      "type": "string"
+    },
+    {
+      "key": "key",
+      "value": "user:123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Namespaces",
+      "item": [
+        {
+          "name": "List Namespaces",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces"]
+            },
+            "description": "Retrieve a list of all namespaces in the system"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Namespace (STRING)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"namespace\": \"users\",\n  \"keyStrategy\": \"HASH\",\n  \"valueStrategy\": \"STRING\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces"]
+            },
+            "description": "Create a namespace with STRING value strategy"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Namespace (JSON_BLOB)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"namespace\": \"products\",\n  \"keyStrategy\": \"HASH\",\n  \"valueStrategy\": \"JSON_BLOB\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces"]
+            },
+            "description": "Create a namespace with JSON_BLOB value strategy"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Namespace (ATOMIC_INCREMENT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"namespace\": \"counters\",\n  \"keyStrategy\": \"HASH\",\n  \"valueStrategy\": \"ATOMIC_INCREMENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces"]
+            },
+            "description": "Create a namespace with ATOMIC_INCREMENT value strategy"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Namespace",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}"]
+            },
+            "description": "Get details of a specific namespace"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Namespace",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}"]
+            },
+            "description": "Delete a namespace and all its data"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Key-Value Operations",
+      "item": [
+        {
+          "name": "List Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv?limit=100&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "List all keys in a namespace with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Put Value (Simple String)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "John Doe"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"]
+            },
+            "description": "Store a simple string value"
+          },
+          "response": []
+        },
+        {
+          "name": "Put Value (JSON)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"John Doe\", \"email\": \"john@example.com\", \"age\": 30}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"]
+            },
+            "description": "Store a JSON object"
+          },
+          "response": []
+        },
+        {
+          "name": "Put Value (Consistency ONE)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "Fast write with ONE consistency"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}?consistency=ONE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"],
+              "query": [
+                {
+                  "key": "consistency",
+                  "value": "ONE"
+                }
+              ]
+            },
+            "description": "Store value with ONE consistency level (fastest)"
+          },
+          "response": []
+        },
+        {
+          "name": "Put Value (Consistency QUORUM)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "Balanced write with QUORUM consistency"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}?consistency=QUORUM",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"],
+              "query": [
+                {
+                  "key": "consistency",
+                  "value": "QUORUM"
+                }
+              ]
+            },
+            "description": "Store value with QUORUM consistency level (default)"
+          },
+          "response": []
+        },
+        {
+          "name": "Put Value (Consistency ALL)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/plain"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "Strong consistency write with ALL"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}?consistency=ALL",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"],
+              "query": [
+                {
+                  "key": "consistency",
+                  "value": "ALL"
+                }
+              ]
+            },
+            "description": "Store value with ALL consistency level (strongest)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Value",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"]
+            },
+            "description": "Retrieve a value by key"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Value (Consistency QUORUM)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}?consistency=QUORUM",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"],
+              "query": [
+                {
+                  "key": "consistency",
+                  "value": "QUORUM"
+                }
+              ]
+            },
+            "description": "Retrieve value with QUORUM consistency"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Value",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/namespaces/{{namespace}}/kv/{{key}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "namespaces", "{{namespace}}", "kv", "{{key}}"]
+            },
+            "description": "Delete a key-value pair"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cluster Administration",
+      "item": [
+        {
+          "name": "List Cluster Nodes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cluster/nodes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "cluster", "nodes"]
+            },
+            "description": "Get a list of all nodes in the cluster"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Node to Cluster",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nodeId\": \"node4\",\n  \"host\": \"10.0.0.4\",\n  \"port\": 8080,\n  \"adminPort\": 9090\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cluster/nodes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "cluster", "nodes"]
+            },
+            "description": "Register a new node in the cluster"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Node from Cluster",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cluster/nodes/node4",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "cluster", "nodes", "node4"]
+            },
+            "description": "Deregister a node from the cluster"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cluster Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cluster/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "cluster", "status"]
+            },
+            "description": "Get the current status and health of the cluster"
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Gossip Protocol",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cluster/gossip",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "cluster", "gossip"]
+            },
+            "description": "Manually trigger the gossip protocol"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Snapshot Management",
+      "item": [
+        {
+          "name": "Create Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/snapshot/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "snapshot", "create"]
+            },
+            "description": "Create a snapshot of the current data"
+          },
+          "response": []
+        },
+        {
+          "name": "List Snapshots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/snapshot/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "snapshot", "list"]
+            },
+            "description": "Get a list of all available snapshots"
+          },
+          "response": []
+        },
+        {
+          "name": "Load Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/snapshot/load?snapshotName=snapshot-2025-01-19T10-30-00.gz",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "snapshot", "load"],
+              "query": [
+                {
+                  "key": "snapshotName",
+                  "value": "snapshot-2025-01-19T10-30-00.gz"
+                }
+              ]
+            },
+            "description": "Restore data from a snapshot"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "Get Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "metrics"]
+            },
+            "description": "Get metrics in Prometheus text format"
+          },
+          "response": []
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{adminUrl}}/healthcheck",
+              "host": ["{{adminUrl}}"],
+              "path": ["healthcheck"]
+            },
+            "description": "Check the health status of the application (admin port)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
