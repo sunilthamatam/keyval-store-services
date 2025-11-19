@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  keyval-node1:
+    build: .
+    container_name: keyval-node1
+    hostname: keyval-node1
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      - ./keyval-application/config-node1.yml:/config/config.yml:ro
+      - keyval-node1-data:/data
+    environment:
+      - JAVA_OPTS=-Xmx2g -Xms2g -XX:+UseG1GC
+      - NODE_ID=node1
+      - NODE_NAME=node1
+    networks:
+      - keyval-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  keyval-node2:
+    build: .
+    container_name: keyval-node2
+    hostname: keyval-node2
+    ports:
+      - "8081:8080"
+      - "9091:9090"
+    volumes:
+      - ./keyval-application/config-node2.yml:/config/config.yml:ro
+      - keyval-node2-data:/data
+    environment:
+      - JAVA_OPTS=-Xmx2g -Xms2g -XX:+UseG1GC
+      - NODE_ID=node2
+      - NODE_NAME=node2
+    networks:
+      - keyval-network
+    depends_on:
+      - keyval-node1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  keyval-node3:
+    build: .
+    container_name: keyval-node3
+    hostname: keyval-node3
+    ports:
+      - "8082:8080"
+      - "9092:9090"
+    volumes:
+      - ./keyval-application/config-node3.yml:/config/config.yml:ro
+      - keyval-node3-data:/data
+    environment:
+      - JAVA_OPTS=-Xmx2g -Xms2g -XX:+UseG1GC
+      - NODE_ID=node3
+      - NODE_NAME=node3
+    networks:
+      - keyval-network
+    depends_on:
+      - keyval-node1
+      - keyval-node2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  keyval-node1-data:
+    driver: local
+  keyval-node2-data:
+    driver: local
+  keyval-node3-data:
+    driver: local
+
+networks:
+  keyval-network:
+    driver: bridge

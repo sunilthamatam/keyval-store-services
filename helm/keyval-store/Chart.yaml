@@ -1,0 +1,30 @@
+apiVersion: v2
+name: keyval-store
+description: A distributed key-value store with off-heap storage and clustering support
+type: application
+
+# Chart version
+version: 1.0.0
+
+# Application version
+appVersion: "1.0.0"
+
+keywords:
+  - key-value
+  - storage
+  - distributed
+  - cluster
+  - off-heap
+
+maintainers:
+  - name: Constelld Team
+    email: support@constelld.com
+
+home: https://github.com/sunilthamatam/keyval-store-services
+sources:
+  - https://github.com/sunilthamatam/keyval-store-services
+
+icon: https://raw.githubusercontent.com/sunilthamatam/keyval-store-services/main/docs/logo.png
+
+annotations:
+  category: Database

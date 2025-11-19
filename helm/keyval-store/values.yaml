@@ -1,0 +1,232 @@
+# Default values for keyval-store
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of replicas in the cluster
+replicaCount: 3
+
+image:
+  repository: constelld/keyval-store
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/api/v1/admin/metrics"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+
+# Application ports
+service:
+  type: ClusterIP
+  port: 8080
+  adminPort: 9090
+  annotations: {}
+
+# Headless service for StatefulSet
+headlessService:
+  enabled: true
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: keyval-store.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: keyval-store-tls
+  #    hosts:
+  #      - keyval-store.local
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 2Gi
+
+# Autoscaling (disabled by default for StatefulSet)
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Persistent volume for SQLite database
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+
+# Snapshots storage
+snapshotPersistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+
+# Application configuration
+config:
+  # Logging configuration
+  logging:
+    level: INFO
+    appLevel: DEBUG
+
+  # Cluster configuration
+  cluster:
+    # Replication factor (number of copies of each key)
+    replicationFactor: 3
+    # Virtual nodes per physical node for consistent hashing
+    virtualNodesPerNode: 150
+    # Gossip protocol interval in milliseconds
+    gossipInterval: 5000
+    # Gossip fanout (number of peers to gossip with)
+    gossipFanout: 3
+
+  # Storage configuration
+  storage:
+    # Maximum off-heap memory to use
+    maxOffHeapMemory: 2GB
+    # Enable snapshot functionality
+    enableSnapshots: true
+    # Snapshot directory
+    snapshotDirectory: /data/snapshots
+
+  # Consistency configuration
+  consistency:
+    # Default read consistency level: ONE, QUORUM, ALL
+    defaultReadLevel: QUORUM
+    # Default write consistency level: ONE, QUORUM, ALL
+    defaultWriteLevel: QUORUM
+
+  # Database configuration
+  database:
+    # SQLite database file path
+    url: jdbc:sqlite:/data/db/keyvalstore.db
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /healthcheck
+    port: admin
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /healthcheck
+    port: admin
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# Startup probe configuration
+startupProbe:
+  httpGet:
+    path: /healthcheck
+    port: admin
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 30
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  # Pod anti-affinity to spread pods across nodes
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - keyval-store
+          topologyKey: kubernetes.io/hostname
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Service monitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  annotations: {}
+
+# Network policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels: {}
+  egress:
+    - to:
+      - podSelector:
+          matchLabels: {}
+
+# Environment variables
+env: []
+  # - name: JAVA_OPTS
+  #   value: "-Xmx2g -Xms2g"
+
+# Extra volumes
+extraVolumes: []
+
+# Extra volume mounts
+extraVolumeMounts: []

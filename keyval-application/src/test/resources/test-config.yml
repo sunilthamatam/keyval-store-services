@@ -1,0 +1,41 @@
+# KeyVal Store Test Configuration
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 0  # Random port for testing
+  adminConnectors:
+    - type: http
+      port: 0  # Random port for testing
+
+logging:
+  level: WARN
+  loggers:
+    com.constelld.keyvalstore: INFO
+  appenders:
+    - type: console
+      threshold: ALL
+      timeZone: UTC
+      target: stdout
+      logFormat: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+cluster:
+  nodeName: test-node
+  nodeId: test-node-1
+  host: localhost
+  port: 0
+  adminPort: 0
+  seedNodes: []
+  replicationFactor: 1
+  virtualNodesPerNode: 10
+
+storage:
+  maxOffHeapMemory: 256MB
+
+consistency:
+  defaultReadLevel: ONE
+  defaultWriteLevel: ONE
+
+database:
+  driverClass: org.sqlite.JDBC
+  url: jdbc:sqlite::memory:
